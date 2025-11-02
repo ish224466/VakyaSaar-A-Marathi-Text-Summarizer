@@ -16,7 +16,7 @@ $bodyString = $bodyObject | ConvertTo-Json
 $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($bodyString)
 
 # 4. Set up the WebClient
-$uri = "http://127.0.0.1:8000/summarize"
+$uri = "http://127.0.0.1:8000/summarize-marathi"
 $webClient = New-Object System.Net.WebClient
 $webClient.Headers.Add("Content-Type", "application/json; charset=utf-8")
 

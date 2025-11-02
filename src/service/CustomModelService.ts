@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 
 export default class CustomModelService {
   static async summarize(text: string, min_length?: number, max_length?: number): Promise<string> {
-    const resp = await fetch(`${BASE}/summarize`, {
+    const resp = await fetch(`${BASE}/summarize-marathi`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({ text, min_length, max_length }),

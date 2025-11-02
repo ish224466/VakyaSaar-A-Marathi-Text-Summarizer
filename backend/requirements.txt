@@ -4,7 +4,8 @@ transformers>=4.30.0
 sentencepiece
 torch>=1.13.0
 pydantic>=1.10.0
-
+flask
+flask-cors
 # Optional / useful packages used in notebook
 gensim
 sumy
