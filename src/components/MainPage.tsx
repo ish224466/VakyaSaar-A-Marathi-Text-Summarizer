@@ -56,10 +56,15 @@ const MainPage: React.FC<MainPageProps> = ({className, isSidebarCollapsed, toggl
   const [loading, setLoading] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [allowAutoScroll, setAllowAutoScroll] = useState(true);
+  const [summaryTone, setSummaryTone] = useState<'formal' | 'casual' | 'neutral'>('neutral');
+  const [summaryLength, setSummaryLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [showSummaryOptions, setShowSummaryOptions] = useState(false);
+  const [selectedCustomModel, setSelectedCustomModel] = useState<'mT5-Marathi' | 'IndicBART' | 'Pegasus-Marathi'>('mT5-Marathi');
+
   const messageBoxRef = useRef<MessageBoxHandles>(null);
   const chatSettingsRef = useRef(chatSettings);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-
+  
   useEffect(() => {
     chatSettingsEmitter.on('chatSettingsChanged', chatSettingsListener);
 
@@ -304,42 +309,58 @@ const MainPage: React.FC<MainPageProps> = ({className, isSidebarCollapsed, toggl
         dots = dots % 3 + 1;
       }, 500);
 
-      try {
-        // poll readiness, warm up if needed
-        let ready = await CustomModelService.isReady();
-        const maxAttempts = 6;
-        let attempts = 0;
-        while (!ready && attempts < maxAttempts) {
-          await CustomModelService.warmUp();
-          // exponential-ish backoff
-          await new Promise(r => setTimeout(r, 1000 * (attempts + 1)));
-          ready = await CustomModelService.isReady();
-          attempts++;
-        }
+              try {
+          let ready = await CustomModelService.isReady();
+          const maxAttempts = 6;
+          let attempts = 0;
+          while (!ready && attempts < maxAttempts) {
+            await CustomModelService.warmUp();
+            await new Promise(r => setTimeout(r, 1000 * (attempts + 1)));
+            ready = await CustomModelService.isReady();
+            attempts++;
+          }
 
-        if (!ready) {
+          if (!ready) {
+            clearInterval(interval as any);
+            setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, messageType: MessageType.Error, content: 'Summarizer not ready' } : m));
+            return;
+          }
+
+          // ← NEW: Pass tone and length
+          const summary = await CustomModelService.summarize(
+            message,
+            selectedCustomModel,
+            summaryTone,
+            summaryLength
+          );
+          // ← END NEW
+
           clearInterval(interval as any);
-          // replace placeholder with error
-          setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, messageType: MessageType.Error, content: 'Summarizer not ready' } : m));
-          return;
-        }
-
-        const summary = await CustomModelService.summarize(message);
-        clearInterval(interval as any);
 
           if (summary && summary.trim().length > 0) {
-          setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, messageType: MessageType.Normal, content: summary, isSummary: true } : m));
-        } else {
-          setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, messageType: MessageType.Error, content: 'Summarizer returned empty summary', isSummary: true } : m));
+            setMessages(prev => prev.map(m => 
+              m.id === placeholderId 
+                ? { ...m, messageType: MessageType.Normal, content: summary, isSummary: true } 
+                : m
+            ));
+          } else {
+            setMessages(prev => prev.map(m => 
+              m.id === placeholderId 
+                ? { ...m, messageType: MessageType.Error, content: 'Summarizer returned empty summary', isSummary: true } 
+                : m
+            ));
+          }
+        } catch (err) {
+          clearInterval(interval as any);
+          const errMsg = err instanceof Error ? err.message : String(err);
+          setMessages(prev => prev.map(m => 
+            m.id === placeholderId 
+              ? { ...m, messageType: MessageType.Error, content: `Summarizer error: ${errMsg}`, isSummary: true } 
+              : m
+          ));
         }
-      } catch (err) {
-        clearInterval(interval as any);
-        const errMsg = err instanceof Error ? err.message : String(err);
-  setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, messageType: MessageType.Error, content: `Summarizer error: ${errMsg}`, isSummary: true } : m));
-      }
-    })();
-  };
-
+      })();
+    }
   const addMessage = (
     role: Role,
     messageType: MessageType,
@@ -695,6 +716,14 @@ const MainPage: React.FC<MainPageProps> = ({className, isSidebarCollapsed, toggl
                 ? 'warn'
                 : 'no'
             }
+            summaryTone={summaryTone}
+            summaryLength={summaryLength}
+            setSummaryTone={setSummaryTone}
+            setSummaryLength={setSummaryLength}
+            showSummaryOptions={showSummaryOptions}
+            setShowSummaryOptions={setShowSummaryOptions}
+            selectedCustomModel={selectedCustomModel}
+            setSelectedCustomModel={setSelectedCustomModel}
           />
         </main>
       </div>

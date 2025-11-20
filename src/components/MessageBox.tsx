@@ -7,7 +7,8 @@ import React, {
   useCallback,
   useImperativeHandle,
   useRef,
-  useState
+  useState,
+  useEffect
 } from 'react';
 import {
   IMAGE_MIME_TYPES,
@@ -30,6 +31,14 @@ interface MessageBoxProps {
   loading: boolean;
   setLoading: (loading: boolean) => void;
   allowImageAttachment: string;
+  summaryTone: 'formal' | 'casual' | 'neutral';
+  summaryLength: 'short' | 'medium' | 'long';
+  setSummaryTone: (tone: 'formal' | 'casual' | 'neutral') => void;
+  setSummaryLength: (len: 'short' | 'medium' | 'long') => void;
+  showSummaryOptions: boolean;
+  setShowSummaryOptions: (show: boolean) => void;
+  selectedCustomModel: 'mT5-Marathi' | 'IndicBART' | 'Pegasus-Marathi';
+  setSelectedCustomModel: (model: 'mT5-Marathi' | 'IndicBART' | 'Pegasus-Marathi') => void;
 }
 
 // Methods exposed to clients using useRef<MessageBoxHandles>
@@ -44,13 +53,27 @@ export interface MessageBoxHandles {
 
 const MessageBox =
   forwardRef<MessageBoxHandles, MessageBoxProps>(
-    ({loading, setLoading, callApp, allowImageAttachment}, ref) => {
+    ({
+      loading,
+      setLoading,
+      callApp,
+      allowImageAttachment,
+      summaryTone,
+      summaryLength,
+      setSummaryTone,
+      setSummaryLength,
+      showSummaryOptions,
+      setShowSummaryOptions,
+      selectedCustomModel,
+      setSelectedCustomModel
+    }, ref) => {
       const {t} = useTranslation();
       const textValue = useRef('');
       const [isTextEmpty, setIsTextEmpty] = useState(true);
       const textAreaRef = useRef<HTMLTextAreaElement>(null);
       const resizeTimeoutRef = useRef<number | null>(null);
       const [fileDataRef, setFileDataRef] = useState<FileDataRef[]>([]);
+      const [showModelOptions, setShowModelOptions] = useState(false);
 
       const setTextValue = (value: string) => {
         textValue.current = value;
@@ -63,6 +86,20 @@ const MessageBox =
         setIsTextEmpty(textAreaRef.current?.value.trim() === '');
         debouncedResize();
       }
+            // Close drop-ups when clicking outside
+      useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+          // Only close if click is outside the buttons/dropdowns
+          const target = event.target as HTMLElement;
+          if (!target.closest('button') && !target.closest('select')) {
+            setShowSummaryOptions(false);
+            setShowModelOptions(false);
+          }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
 
       useImperativeHandle(ref, () => ({
         // Method to clear the textarea
@@ -367,40 +404,42 @@ const MessageBox =
         setFileDataRef(fileDataRef.filter((_, i) => i !== index));
       };
 
-      return (
+            return (
         <div
-          style={{position: "sticky"}}
-          className="absolute bottom-0 left-0 w-full border-t md:border-t-0 dark:border-white/20 md:border-transparent md:dark:border-transparent md:bg-transparent! pt-2">
-          <form onSubmit={handleSubmit}
-                className="stretch mx-2 flex flex-row gap-3 last:mb-2 md:mx-4 md:last:mb-6 lg:mx-auto md:max-w-2xl lg:max-w-2xl xl:max-w-4xl 2xl:max-w-5xl 3xl:max-w-6xl 4xl:max-w7xl">
-            <div id="message-box-border"
-                 style={{borderRadius: "4rem", maxWidth: "950px" , marginInline: "auto"}}
-                 className="relative flex flex-col h-full flex-1 w-4/5 py-2 grow md:py-3 bg-white 
-               dark:text-white dark:bg-gray-800 border border-black/10 dark:border-white-800/40 focus-within:ring-1
-               focus-within:border-black/30 dark:focus-within:border-gray-500/50"
+          style={{ position: "sticky" }}
+          className="absolute bottom-0 left-0 w-full border-t md:border-t-0 dark:border-white/20 md:border-transparent md:dark:border-transparent md:bg-transparent pt-2"
+        >
+          <form
+            onSubmit={handleSubmit}
+            className="stretch mx-2 flex flex-row gap-3 last:mb-2 md:mx-4 md:last:mb-6 lg:mx-auto md:max-w-2xl lg:max-w-2xl xl:max-w-4xl 2xl:max-w-5xl 3xl:max-w-6xl 4xl:max-w-7xl"
+          >
+            <div
+              id="message-box-border"
+              style={{ borderRadius: "4rem", maxWidth: "950px", marginInline: "auto" }}
+              className="relative flex flex-col h-full flex-1 w-4/5 py-2 grow md:py-3 bg-white dark:text-white dark:bg-gray-800 border border-black/10 dark:border-white-800/40 focus-within:ring-1 focus-within:border-black/30 dark:focus-within:border-gray-500/50"
             >
-              {/* FileDataPreview Full Width at the Top */}
+              {/* File Preview */}
               {fileDataRef.length > 0 && (
                 <div className="w-full">
-                  <FileDataPreview fileDataRef={fileDataRef} removeFileData={handleRemoveFileData}
-                                   allowImageAttachment={allowImageAttachment == 'yes'}/>
+                  <FileDataPreview
+                    fileDataRef={fileDataRef}
+                    removeFileData={handleRemoveFileData}
+                    allowImageAttachment={allowImageAttachment === 'yes'}
+                  />
                 </div>
               )}
-              {/* Container for Textarea and Buttons */}
+
+              {/* Input Row */}
               <div className="flex items-center w-full relative space-x-2">
                 {/* Attachment Button */}
                 <div className="flex items-center justify-start">
-                  <button
-                    onClick={(e) => handleAttachment(e)}
-                    className="px-4 relative z-10">
-                    <PaperClipIcon className="h-6 w-6"/>
+                  <button onClick={handleAttachment} className="px-4 relative z-10">
+                    <PaperClipIcon className="h-6 w-6" />
                   </button>
                 </div>
 
-                {/* Grammarly extension container */}
-                <div className="flex items-center " style={{ flexShrink: 0, minWidth: 'fit-content' }}>
-                  {/* Grammarly extension buttons will render here without overlapping */}
-                </div>
+                {/* Grammarly placeholder */}
+                <div className="flex items-center" style={{ flexShrink: 0, minWidth: 'fit-content' }} />
 
                 {/* Textarea */}
                 <textarea
@@ -409,32 +448,115 @@ const MessageBox =
                   tabIndex={0}
                   ref={textAreaRef}
                   rows={1}
-                  className="flex-auto m-0 resize-none border-0 bg-transparent px-2 py-2 focus:ring-0 focus-visible:ring-0 outline-hidden shadow-none dark:bg-transparent"
+                  className="flex-auto m-0 resize-none border-0 bg-transparent px-2 py-2 focus:ring-0 focus-visible:ring-0 outline-none shadow-none dark:bg-transparent"
                   placeholder={t('send-a-message')}
                   onKeyDown={checkForSpecialKey}
                   onChange={handleTextChange}
                   onPaste={handlePaste}
                   style={{ minWidth: 0 }}
-                ></textarea>
+                />
 
-                {/* Cancel/Submit Button */}
-                <div className="flex items-center justify-end">
+                                {/* Right side: Model Selector + Tone/Length + Submit */}
+                <div className="flex items-center gap-2">
+                  {/* Model Selector */}
+                                    {/* Model Selector Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowModelOptions(!showModelOptions  )}
+                    className="px-4 py-2 text-sm font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors whitespace-nowrap"
+                  >
+                    {selectedCustomModel === 'mT5-Marathi' && 'mT5-Marathi'}
+                    {selectedCustomModel === 'IndicBART' && 'IndicBART'}
+                    {selectedCustomModel === 'Pegasus-Marathi' && 'Pegasus (Best)'} ▼
+                  </button>
+
+                  {/* Model Drop-up Panel */}
+                  {showModelOptions && (
+                    <div className="absolute bottom-16 right-10 w-56 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl p-3 z-50">
+                      <div className="space-y-1">
+                        {(['mT5-Marathi', 'IndicBART', 'Pegasus-Marathi'] as const).map(model => (
+                          <button
+                            key={model}
+                            onClick={() => {
+                              setSelectedCustomModel(model);
+                              setShowModelOptions(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 rounded-md text-sm transition-colors ${
+                              selectedCustomModel === model
+                                ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 font-medium'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            {model === 'mT5-Marathi' && 'mT5-Marathi'}
+                            {model === 'IndicBART' && 'IndicBART'}
+                            {model === 'Pegasus-Marathi' && 'Pegasus-Marathi (Best Quality)'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tone • Length Button */}
+                  {selectedCustomModel === 'Pegasus-Marathi' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSummaryOptions(!showSummaryOptions)}
+                    className="px-3 py-2 text-xs font-medium bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors whitespace-nowrap"
+                    title="Summary tone & length"
+                  >
+                    
+                      <>
+                        {summaryTone.charAt(0).toUpperCase() + summaryTone.slice(1)} •{' '}
+                        {summaryLength === 'short' ? 'Short' : summaryLength === 'medium' ? 'Med' : 'Long'} ▼
+                      </>
+                    
+                  </button>
+                  )}
+
+                  {/* Submit Button */}
                   {loading ? (
                     <Tooltip title={t('cancel-output')} side="top" sideOffset={0}>
-                      <button
-                        onClick={(e) => handleCancel(e)}
-                        className="p-1">
-                        <StopCircleIcon className="h-6 w-6"/>
+                      <button onClick={handleCancel} className="p-1">
+                        <StopCircleIcon className="h-6 w-6" />
                       </button>
                     </Tooltip>
                   ) : (
-                    <SubmitButton
-                      disabled={isTextEmpty || loading}
-                      loading={loading}
-                    />
+                    <SubmitButton disabled={isTextEmpty || loading} loading={loading} />
                   )}
                 </div>
               </div>
+
+              {/* Drop-up Panel (appears above input) */}
+              {showSummaryOptions && selectedCustomModel === 'Pegasus-Marathi' && (
+                <div className="absolute bottom-18 right-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl p-3 z-50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Tone</label>
+                      <select
+                        value={summaryTone}
+                        onChange={(e) => setSummaryTone(e.target.value as any)}
+                        className="w-full px-3 py-2 rounded border dark:bg-gray-700 text-sm"
+                      >
+                        <option value="neutral">Neutral</option>
+                        <option value="formal">Formal</option>
+                        <option value="casual">Casual</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Length</label>
+                      <select
+                        value={summaryLength}
+                        onChange={(e) => setSummaryLength(e.target.value as any)}
+                        className="w-full px-3 py-2 rounded border dark:bg-gray-700 text-sm"
+                      >
+                        <option value="short">Short</option>
+                        <option value="medium">Medium</option>
+                        <option value="long">Long</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </form>
         </div>
