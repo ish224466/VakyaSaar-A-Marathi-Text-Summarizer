@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState,useEffect} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 import {Cog8ToothIcon, PlusIcon, Squares2X2Icon} from "@heroicons/react/24/outline";
 import {CloseSideBarIcon, iconProps, OpenSideBarIcon} from "../svg";
@@ -31,6 +31,25 @@ const Sidebar: React.FC<SidebarProps> = ({className, isSidebarCollapsed, toggleS
   const handleOnClose = () => {
     setSettingsModalVisible(false);
   }
+  
+    // Close sidebar when clicking outside
+  useEffect(() => {
+    if (isSidebarCollapsed) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('.sidebar');
+      const openButton = document.querySelector('button > svg[data-icon="open-sidebar"]')?.closest('button');
+
+      // If click is outside sidebar AND not on the open button → close it
+      if (sidebar && !sidebar.contains(target) && (!openButton || !openButton.contains(target))) {
+        toggleSidebarCollapse();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSidebarCollapsed, toggleSidebarCollapse]);
 
   return (
     <div className={`${className} relative`}>
@@ -92,10 +111,14 @@ const Sidebar: React.FC<SidebarProps> = ({className, isSidebarCollapsed, toggleS
                     </button>
                   </Tooltip>
                 </div>
-                <Link to="/explore" className="flex items-center m-2 dark:bg-gray-800 dark:text-gray-100 text-gray-900">
+                <Link to="/performance" className="flex items-center m-2 dark:bg-gray-800 dark:text-gray-100 text-gray-900">
+                  <Squares2X2Icon  {...iconProps} className="mt-1 mr-2 text-white"/>
+                  <span className="mt-1 mr-2 text-white">{t('Analysis')}</span>
+                </Link> 
+                {/* <Link to="/explore" className="flex items-center m-2 dark:bg-gray-800 dark:text-gray-100 text-gray-900">
                   <Squares2X2Icon  {...iconProps} className="mt-1 mr-2 text-white"/>
                   <span className="mt-1 mr-2 text-white">{t('custom-chats-header')}</span>
-                </Link>
+                </Link> */}
                 <ChatShortcuts/>
                 <ConversationList/>
               </nav>

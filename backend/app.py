@@ -1,8 +1,7 @@
-"""FastAPI wrapper exposing /summarize and /summarize-marathi endpoints.
+#FastAPI wrapper exposing /summarize and /summarize-marathi endpoints.
 
-Run with:
-    uvicorn backend.app:app --reload --port 8000
-"""
+   # uvicorn backend.app:app --reload --workers 3 --port 8000
+
 
 # --- Fix Unicode Output (important for Marathi text) ---
 import sys
@@ -65,6 +64,17 @@ async def summarize_marathi_endpoint(req: SummarizeRequest):
         logger.exception("Error during Marathi summarization")
         raise HTTPException(status_code=500, detail=str(e))
 
+# === fine tuned model Summarizer Endpoint ===
+@app.post("/summarize-finetuned", response_model=SummarizeResponse)
+async def summarize_finetuned_endpoint(req: SummarizeRequest):
+    try:
+        summary = summarize_marathi_text(req.text)
+        return SummarizeResponse(summary=summary)
+    except Exception as e:
+        logger.exception("Error during fine tuned model summarization")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
 # === Health + Utility Endpoints ===
 @app.get("/ready")
 async def ready():

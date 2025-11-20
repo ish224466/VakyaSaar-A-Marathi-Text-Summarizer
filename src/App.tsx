@@ -8,6 +8,7 @@ import './App.css';
 import {ToastContainer} from "react-toastify";
 import ExploreCustomChats from "./components/ExploreCustomChats";
 import CustomChatEditor from './components/CustomChatEditor';
+import Analysis from './components/Analysis';
 
 const App = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -40,6 +41,9 @@ const App = () => {
                   <Route path="/" element={<MainPage className={'main-content'} isSidebarCollapsed={isSidebarCollapsed} toggleSidebarCollapse={toggleSidebarCollapse} />}/>
                   <Route path="/c/:id" element={<MainPage className={'main-content'} isSidebarCollapsed={isSidebarCollapsed} toggleSidebarCollapse={toggleSidebarCollapse} />}/>
                   <Route path="/explore" element={<ExploreCustomChats/>}/>
+                  <Route path="/performance" element={<Analysis/>}/>
+
+                  {/* <Route path="/explore" element={<ExploreCustomChats/>}/> */}
                   {/* Use MainPage directly to avoid remounting */}
                   <Route path="/g/:gid" element={<MainPage className={'main-content'} isSidebarCollapsed={isSidebarCollapsed} toggleSidebarCollapse={toggleSidebarCollapse} />}/>
                   <Route path="/g/:gid/c/:id" element={<MainPage className={'main-content'} isSidebarCollapsed={isSidebarCollapsed} toggleSidebarCollapse={toggleSidebarCollapse} />}/>

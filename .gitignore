@@ -8,7 +8,9 @@
 # testing
 /coverage
 
-__pycache__/
+/backend/__pycache__/
+*.pyc
+
 
 # production
 /dist
